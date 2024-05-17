@@ -1,6 +1,9 @@
 import { Router } from 'express';
+import fs from 'fs'; //file system
 import { v4 as uuidv4 } from 'uuid'; //para crear identificadores unicos
 import { checkProductsFields } from '../middlewares/products/checkProductsFields.middleware.js';
+import { checkProductUpdate } from '../middlewares/products/checkProductUpdate.middleware.js';
+import __dirname from '../dirname.js';
 const router = Router();
 
 //Productos
@@ -44,19 +47,24 @@ router.post('/', checkProductsFields, (req, res) => {
 });
 
 //Modifica producto
-router.put('/:pid', (req, res) => {
+router.put('/:pid', checkProductUpdate, (req, res) => {
   const { pid } = req.params;
+  let dataProduct = req.body;
+  let index = findPid(pid);
+  if (index === -1)
+    return res.status(404).json({
+      status: 'Error',
+      msg: `No se encuentra el producto con id ${pid}`,
+    });
 
-  //   let dataUser = req.body;
-
-  //   let index = users.findIndex( user => user.email === email );
-  //   if(index === -1) return res.status(404).json({ status: "Error", msg: "No se encuentra el usuario" });
-
-  //   users[index] = {
-  //     ...users[index], // hacemos una copia completa del mismo usuario
-  //     ...dataUser // sobre escribimos la data actualizada que recibimos del body
-  //   }
-  res.status(201).json(products);
+  products[index] = {
+    ...products[index], // hacemos una copia completa del mismo producto
+    ...dataProduct, // sobre escribimos la data actualizada que recibimos del
+  };
+  res.status(201).json({
+    status: 'success',
+    msg: `Producto ${pid} modificado con éxito`,
+  });
 });
 
 //Elimina producto
