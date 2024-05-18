@@ -28,7 +28,7 @@ const addProduct = async (product) => {
   products.push(newProduct); //agrego el prod a productos
   await fs.promises.writeFile(pathFile, JSON.stringify(products)); //lo grabo en el json
 
-  return product; //devuelvo el prod creado
+  return newProduct; //devuelvo el prod creado
 };
 
 //OBTENER PRODUCTOS *************************************
@@ -55,6 +55,7 @@ const updateProduct = async (pid, productData) => {
   await getProducts(); //obtengo todos los prod
 
   const index = products.findIndex((p) => p.pid === pid); //busco el producto
+
   //reemplazo los valores por los que vinieron por parm
   products[index] = {
     ...products[index],
