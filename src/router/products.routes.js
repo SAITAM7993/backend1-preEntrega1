@@ -1,88 +1,88 @@
 import { Router } from 'express';
-import fs from 'fs'; //file system
-import { v4 as uuidv4 } from 'uuid'; //para crear identificadores unicos
-import { checkProductsFields } from '../middlewares/products/checkProductsFields.middleware.js';
-import { checkProductUpdate } from '../middlewares/products/checkProductUpdate.middleware.js';
-import __dirname from '../dirname.js';
+import productManager from '../managers/product.manager.js';
+import { checkProductData } from '../middlewares/products/checkProductData.middleware.js';
 const router = Router();
 
-//Productos
-let products = [];
-
-const findPid = (pid) => {
-  let index = products.findIndex((product) => product.pid === pid);
-  //busco producto por pid, si index devuelve -1 es que no lo encontro
-  return index;
-};
-
-//Lista productos
-router.get('/', (req, res) => {
-  res.status(200).json(products);
+//GET PRODUCTS TODOS Y LIMIT
+router.get('/', async (req, res) => {
+  try {
+    const { limit } = req.query;
+    const products = await productManager.getProducts(limit);
+    // throw new Error("Error de productos") // Forzamos el error
+    res.status(200).json({ status: 'success', products });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ status: 'Error', msg: 'Error interno del servidor' });
+  }
 });
 
-//Agrega producto
-router.post('/', checkProductsFields, (req, res) => {
-  const product = req.body;
+//OBTENER UN PRODUCTO
+router.get('/:pid', async (req, res) => {
+  try {
+    const { pid } = req.params;
+    // const product = await productManager.getProductById(Number(pid)); IMPORTANTE CUANDO USEMOS MONGO DESCOMENTAR ESTA LIN Y BORRAR LA DE ABAJO, al usar uuid no es NUMBER entonces no encuentra productos
+    const product = await productManager.getProductById(pid);
+    if (!product)
+      return res
+        .status(404)
+        .json({ status: 'Error', msg: 'Producto no encontrado' });
 
-  product.pid = uuidv4();
-  product.status = true;
-
-  //   pid:'', **
-  //   title:'',
-  //   description:'',
-  //   code:'',
-  //   price:,
-  //   status: true, **
-  //   stock:,
-  //   category:,
-  //   thumbnails: [], ***
-
-  products.push(product);
-
-  res.status(201).json({
-    status: 'success',
-    msg: `Producto creado correctamente`,
-    pid: `${product.pid}`,
-  });
+    res.status(200).json({ status: 'success', product });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: 'Erro', msg: 'Error interno del servidor' });
+  }
 });
 
-//Modifica producto
-router.put('/:pid', checkProductUpdate, (req, res) => {
-  const { pid } = req.params;
-  let dataProduct = req.body;
-  let index = findPid(pid);
-  if (index === -1)
-    return res.status(404).json({
-      status: 'Error',
-      msg: `No se encuentra el producto con id ${pid}`,
+router.delete('/:pid', async (req, res) => {
+  try {
+    const { pid } = req.params;
+    // const product = await productManager.deleteProduct(Number(pid));IMPORTANTE CUANDO USEMOS MONGO DESCOMENTAR ESTA LIN Y BORRAR LA DE ABAJO
+    const product = await productManager.deleteProduct(pid);
+    if (!product)
+      return res
+        .status(404)
+        .json({ status: 'Error', msg: 'Producto no encontrado' });
+
+    res.status(200).json({
+      status: 'success',
+      msg: `El producto con el id ${pid} fue eliminado`,
     });
-
-  products[index] = {
-    ...products[index], // hacemos una copia completa del mismo producto
-    ...dataProduct, // sobre escribimos la data actualizada que recibimos del
-  };
-  res.status(201).json({
-    status: 'success',
-    msg: `Producto ${pid} modificado con éxito`,
-  });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: 'Erro', msg: 'Error interno del servidor' });
+  }
 });
 
-//Elimina producto
-router.delete('/:pid', (req, res) => {
-  const { pid } = req.params;
+router.put('/:pid', async (req, res) => {
+  try {
+    const { pid } = req.params;
+    const body = req.body;
+    // const product = await productManager.updateProduct(Number(pid), body);IMPORTANTE CUANDO USEMOS MONGO DESCOMENTAR ESTA LIN Y BORRAR LA DE ABAJO
+    const product = await productManager.updateProduct(pid, body);
+    if (!product)
+      return res
+        .status(404)
+        .json({ status: 'Error', msg: 'Producto no encontrado' });
 
-  //busco producto por pid, si index devuelve -1 es que no lo encontro
-  if (findPid(pid) === -1)
-    return res.status(404).json({
-      status: 'Error',
-      msg: `No se encuentra el producto con id ${pid}`,
-    });
+    res.status(200).json({ status: 'success', product });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: 'Erro', msg: 'Error interno del servidor' });
+  }
+});
 
-  //si lo encuentra hago un filter para quitar el pid indicado
-  products = products.filter((product) => product.pid !== pid);
-  res.status(201).json({
-    status: 'success',
-    msg: `Producto ${pid} eliminado con éxito`,
-  });
+router.post('/', checkProductData, async (req, res) => {
+  try {
+    const body = req.body;
+    const product = await productManager.addProduct(body);
+
+    res.status(201).json({ status: 'success', product });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ status: 'Erro', msg: 'Error interno del servidor' });
+  }
 });
 export default router;
